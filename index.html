@@ -1,1 +1,1565 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RDNK TATTOO CRM</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Phosphor Icons CDN -->
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/dist/phosphor.js"></script>
+    <!-- Inter Font -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d0d0d;
+            color: #d4d4d4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        .panel {
+            display: none;
+        }
+        .active-panel {
+            display: block;
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(10px);
+        }
+        .form-input {
+            @apply w-full p-2 text-sm rounded-xl bg-zinc-700 text-neutral-200 placeholder-gray-400 border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all duration-300;
+        }
+        select.form-input {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1em;
+            padding-right: 2.5rem;
+        }
+        .nav-button {
+            @apply text-sm font-semibold;
+        }
+        table thead th {
+            @apply bg-zinc-700 rounded-tl-xl rounded-tr-xl;
+        }
+        table tbody tr:last-child td:first-child {
+            @apply rounded-bl-xl;
+        }
+        table tbody tr:last-child td:last-child {
+            @apply rounded-br-xl;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 text-neutral-200 min-h-screen flex flex-col">
+
+    <!-- Header and Navigation -->
+    <header class="bg-zinc-900 shadow-xl py-3 sticky top-0 z-50">
+        <nav class="container flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-sky-500">RDNK TATTOO</h1>
+            <div class="space-x-2 flex-wrap justify-center">
+                <button data-panel="dashboard" class="nav-button px-3 py-1 rounded-xl transition-colors duration-300 hover:bg-zinc-800 hover:text-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500">Дашборд</button>
+                <button data-panel="clients" class="nav-button px-3 py-1 rounded-xl transition-colors duration-300 hover:bg-zinc-800 hover:text-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500">Клиенты</button>
+                <button data-panel="appointments" class="nav-button px-3 py-1 rounded-xl transition-colors duration-300 hover:bg-zinc-800 hover:text-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500">Записи</button>
+                <button data-panel="inventory" class="nav-button px-3 py-1 rounded-xl transition-colors duration-300 hover:bg-zinc-800 hover:text-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500">Склад</button>
+                <button data-panel="reports" class="nav-button px-3 py-1 rounded-xl transition-colors duration-300 hover:bg-zinc-800 hover:text-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500">Отчеты</button>
+                <button data-panel="settings" class="nav-button px-3 py-1 rounded-xl transition-colors duration-300 hover:bg-zinc-800 hover:text-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500">Настройки</button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container flex-grow">
+
+        <!-- Panel: Dashboard -->
+        <section id="dashboard" class="panel active-panel p-6 bg-zinc-900 rounded-2xl shadow-2xl mt-4">
+            <h2 class="text-3xl font-bold text-white mb-4">Дашборд</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-zinc-800 p-4 rounded-xl shadow-inner text-center">
+                    <h3 class="text-sm font-semibold text-gray-400 mb-1">Всего записей</h3>
+                    <p id="total-appointments" class="text-3xl font-bold text-sky-400">0</p>
+                </div>
+                <div class="bg-zinc-800 p-4 rounded-xl shadow-inner text-center">
+                    <h3 class="text-sm font-semibold text-gray-400 mb-1">Общий доход</h3>
+                    <p id="total-income" class="text-3xl font-bold text-emerald-400">0 ₴</p>
+                </div>
+                <div class="bg-zinc-800 p-4 rounded-xl shadow-inner text-center">
+                    <h3 class="text-sm font-semibold text-gray-400 mb-1">Материалов на исходе</h3>
+                    <p id="low-stock-count" class="text-3xl font-bold text-amber-400">0</p>
+                </div>
+                <div class="bg-zinc-800 p-4 rounded-xl shadow-inner text-center">
+                    <h3 class="text-sm font-semibold text-gray-400 mb-1">Ваши деньги</h3>
+                    <p id="total-balance" class="text-3xl font-bold text-neutral-200">0 ₴</p>
+                </div>
+            </div>
+            <div class="mt-6">
+                <h3 class="text-xl font-semibold mb-2">Предстоящие записи</h3>
+                <div id="upcoming-appointments" class="space-y-2">
+                    <!-- Upcoming appointments will be rendered here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel: Clients -->
+        <section id="clients" class="panel p-6 bg-zinc-900 rounded-2xl shadow-2xl mt-4">
+            <h2 class="text-3xl font-bold text-white mb-4">Управление Клиентами</h2>
+            <form id="client-form" class="bg-zinc-800 p-4 rounded-xl mb-4 shadow-inner">
+                <input type="hidden" id="client-id">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <input type="text" id="client-name" placeholder="ФИО" class="form-input" required>
+                    <input type="tel" id="client-phone" placeholder="Телефон" class="form-input">
+                    <input type="email" id="client-email" placeholder="Email" class="form-input">
+                    <textarea id="client-notes" placeholder="Заметки о клиенте..." rows="2" class="form-input col-span-1 md:col-span-2 lg:col-span-3"></textarea>
+                </div>
+                <button type="submit" class="mt-3 w-full bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold py-2 px-3 rounded-xl transition-colors">Сохранить Клиента</button>
+            </form>
+            <div class="bg-zinc-800 p-4 rounded-xl shadow-inner">
+                <h3 class="text-xl font-semibold mb-3">Список Клиентов</h3>
+                <table class="min-w-full divide-y divide-zinc-700">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">ФИО</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Телефон</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clients-list" class="divide-y divide-zinc-700 text-sm">
+                        <!-- Clients will be rendered here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Panel: Appointments -->
+        <section id="appointments" class="panel p-6 bg-zinc-900 rounded-2xl shadow-2xl mt-4">
+            <h2 class="text-3xl font-bold text-white mb-4">Записи</h2>
+            <form id="appointment-form" class="bg-zinc-800 p-4 rounded-xl mb-4 shadow-inner">
+                <input type="hidden" id="appointment-id">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <select id="appointment-client" class="form-input" required>
+                        <option value="">Выберите клиента</option>
+                        <option value="new-client">+ Создать нового клиента</option>
+                    </select>
+                    <input type="datetime-local" id="appointment-date" class="form-input" required>
+                    <input type="number" id="appointment-duration" placeholder="Длительность (мин)" class="form-input" required>
+                    <select id="appointment-status" class="form-input" required>
+                        <option value="Запланировано">Запланировано</option>
+                        <option value="В процессе">В процессе</option>
+                        <option value="Завершено">Завершено</option>
+                        <option value="Отменено">Отменено</option>
+                    </select>
+                </div>
+                <div id="new-client-form-section" class="hidden mt-3 space-y-3 p-3 bg-zinc-700 rounded-xl">
+                    <h4 class="text-md font-semibold text-white">Новый клиент</h4>
+                    <input type="text" id="new-client-name" placeholder="ФИО" class="form-input" disabled>
+                    <input type="tel" id="new-client-phone" placeholder="Телефон" class="form-input" disabled>
+                </div>
+                <button type="submit" class="mt-3 w-full bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold py-2 px-3 rounded-xl transition-colors">Сохранить Запись</button>
+            </form>
+            <div class="bg-zinc-800 p-4 rounded-xl shadow-inner">
+                <h3 class="text-xl font-semibold mb-3">Календарь Записей</h3>
+                <div id="appointments-list" class="space-y-2">
+                    <!-- Appointments will be rendered here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel: Inventory -->
+        <section id="inventory" class="panel p-6 bg-zinc-900 rounded-2xl shadow-2xl mt-4">
+            <h2 class="text-3xl font-bold text-white mb-4">Учёт Материалов</h2>
+            <form id="material-form" class="bg-zinc-800 p-4 rounded-xl mb-4 shadow-inner">
+                <input type="hidden" id="material-id">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <input type="text" id="material-name" placeholder="Название материала" class="form-input" required>
+                    <input type="number" id="material-quantity" placeholder="Количество" class="form-input" required>
+                    <input type="number" step="0.01" id="material-cost" placeholder="Стоимость (за ед.)" class="form-input" required>
+                    <input type="number" id="material-min-stock" placeholder="Мин. остаток" class="form-input" required>
+                    <select id="material-category" class="form-input col-span-1 md:col-span-2" required>
+                        <option value="">Выберите категорию</option>
+                    </select>
+                </div>
+                <button type="submit" class="mt-3 w-full bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold py-2 px-3 rounded-xl transition-colors">Добавить Материал</button>
+            </form>
+            <div class="bg-zinc-800 p-4 rounded-xl shadow-inner">
+                <h3 class="text-xl font-semibold mb-3">Список Материалов</h3>
+                <table class="min-w-full divide-y divide-zinc-700">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Название</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Категория</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Кол-во</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Стоимость</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Мин. остаток</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="materials-list" class="divide-y divide-zinc-700 text-sm">
+                        <!-- Materials will be rendered here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Panel: Reports -->
+        <section id="reports" class="panel p-6 bg-zinc-900 rounded-2xl shadow-2xl mt-4">
+            <h2 class="text-3xl font-bold text-white mb-4">Финансовые Отчеты</h2>
+            <div class="flex gap-4 mb-4">
+                <button data-report-type="summary" class="bg-zinc-800 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors duration-300 hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-sky-500">Сводный отчет</button>
+                <button data-report-type="shifts" class="bg-zinc-800 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors duration-300 hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-sky-500">Отчеты по сменам</button>
+            </div>
+
+            <!-- Report Panel: Summary -->
+            <div id="summary-report-panel" class="report-panel active-panel bg-zinc-800 p-4 rounded-xl shadow-inner mb-4">
+                <h3 class="text-xl font-semibold mb-3">Добавить расход</h3>
+                <form id="expense-form" class="flex gap-3 items-end">
+                    <div class="flex-1">
+                        <label class="block text-sm text-gray-400 mb-1">Описание</label>
+                        <input type="text" id="expense-description" placeholder="Описание расхода" class="form-input" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Категория</label>
+                        <select id="expense-category" class="form-input w-36" required>
+                            <option value="">Выберите категорию</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Сумма</label>
+                        <input type="number" step="0.01" id="expense-amount" placeholder="Сумма" class="form-input w-24" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Оплата</label>
+                        <select id="expense-payment-method" class="form-input w-24" required>
+                            <option value="Готівка">Готівка</option>
+                            <option value="Картка">Картка</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Дата</label>
+                        <input type="date" id="expense-date" class="form-input w-28" required>
+                    </div>
+                    <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold py-2 px-3 rounded-xl transition-colors">Добавить</button>
+                </form>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+                    <div class="bg-zinc-800 p-4 rounded-xl shadow-inner text-center">
+                        <h3 class="text-sm font-semibold mb-1 text-gray-400">Общий доход</h3>
+                        <p id="total-sales" class="text-3xl font-bold text-emerald-400">0 ₴</p>
+                    </div>
+                    <div class="bg-zinc-800 p-4 rounded-xl shadow-inner text-center">
+                        <h3 class="text-sm font-semibold mb-1 text-gray-400">Общие расходы</h3>
+                        <p id="total-expenses" class="text-3xl font-bold text-red-400">0 ₴</p>
+                    </div>
+                    <div class="bg-zinc-800 p-4 rounded-xl shadow-inner text-center">
+                        <h3 class="text-sm font-semibold mb-1 text-gray-400">Маржинальность</h3>
+                        <p id="marginality" class="text-3xl font-bold text-sky-400">0%</p>
+                    </div>
+                    <div class="bg-zinc-800 p-4 rounded-xl shadow-inner text-center">
+                        <h3 class="text-sm font-semibold mb-1 text-gray-400">Ваши деньги</h3>
+                        <p id="total-balance-report" class="text-3xl font-bold text-neutral-200">0 ₴</p>
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:gap-4 mb-3">
+                        <h3 class="text-xl font-semibold">Детальные отчеты</h3>
+                        <div class="flex gap-2 items-center mt-2 md:mt-0">
+                            <select id="report-period" class="form-input w-28">
+                                <option value="month">Месяц</option>
+                                <option value="week">Неделя</option>
+                            </select>
+                            <select id="report-filter" class="form-input w-36"></select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="bg-zinc-800 p-4 rounded-xl shadow-inner">
+                            <h4 class="text-lg font-semibold mb-2 text-emerald-400">Доходы по категориям</h4>
+                            <div id="sales-by-category-list" class="space-y-2"></div>
+                        </div>
+                        <div class="bg-zinc-800 p-4 rounded-xl shadow-inner">
+                            <h4 class="text-lg font-semibold mb-2 text-red-400">Расходы по категориям</h4>
+                            <div id="expenses-by-category-list" class="space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Panel: Shifts -->
+            <div id="shifts-report-panel" class="report-panel hidden p-4 rounded-xl bg-zinc-800 shadow-inner">
+                <div id="shift-details-view" class="hidden">
+                    <button id="back-to-shifts-btn" class="mb-4 text-sky-400 hover:underline flex items-center gap-1"><i class="ph ph-arrow-left"></i> Назад к сменам</button>
+                    <h3 class="text-xl font-semibold mb-3">Детали смены <span id="shift-date-details" class="text-sky-400"></span></h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <div class="bg-zinc-900 p-3 rounded-xl text-center">
+                            <h4 class="text-sm text-gray-400">Продажи</h4>
+                            <p id="shift-sales-total" class="text-2xl font-bold text-emerald-400">0 ₴</p>
+                        </div>
+                        <div class="bg-zinc-900 p-3 rounded-xl text-center">
+                            <h4 class="text-sm text-gray-400">Расходы</h4>
+                            <p id="shift-expenses-total" class="text-2xl font-bold text-red-400">0 ₴</p>
+                        </div>
+                        <div class="bg-zinc-900 p-3 rounded-xl text-center">
+                            <h4 class="text-sm text-gray-400">Прибыль</h4>
+                            <p id="shift-profit-total" class="text-2xl font-bold text-neutral-200">0 ₴</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="text-lg font-semibold mb-2 text-emerald-400">Продажи в этой смене</h4>
+                            <div id="shift-sales-list" class="space-y-2"></div>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-semibold mb-2 text-red-400">Расходы в этой смене</h4>
+                            <div id="shift-expenses-list" class="space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="shift-list-view">
+                    <h3 class="text-xl font-semibold mb-3">История смен</h3>
+                    <table class="min-w-full divide-y divide-zinc-700">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Дата</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Начало</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Конец</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Итого (доход)</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Итого (расход)</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shifts-list" class="divide-y divide-zinc-700 text-sm">
+                            <!-- Shifts will be rendered here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel: Settings -->
+        <section id="settings" class="panel p-6 bg-zinc-900 rounded-2xl shadow-2xl mt-4">
+            <h2 class="text-3xl font-bold text-white mb-4">Настройки</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Global Rates Settings -->
+                <div class="bg-zinc-800 p-4 rounded-xl shadow-inner">
+                    <h3 class="text-xl font-semibold mb-3 text-gray-400">Тарифы</h3>
+                    <form id="rates-form" class="space-y-3">
+                        <label class="block">
+                            <span class="text-sm text-gray-400">Почасовая ставка (₴/час):</span>
+                            <input type="number" step="0.01" id="hourly-rate" class="form-input w-full mt-1" required>
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-gray-400">Процент наценки за сложность (%):</span>
+                            <input type="number" step="1" id="complexity-markup" class="form-input w-full mt-1" required>
+                        </label>
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold py-2 px-3 rounded-xl transition-colors">Сохранить</button>
+                    </form>
+                </div>
+                <!-- Material Categories -->
+                <div class="bg-zinc-800 p-4 rounded-xl shadow-inner">
+                    <h3 class="text-xl font-semibold mb-3 text-gray-400">Категории материалов</h3>
+                    <form id="material-category-form" class="flex gap-3 mb-3">
+                        <input type="text" id="material-category-name" placeholder="Название категории" class="form-input flex-1" required>
+                        <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold py-2 px-3 rounded-xl transition-colors">Добавить</button>
+                    </form>
+                    <ul id="material-categories-list" class="space-y-2 text-sm">
+                        <!-- Categories will be rendered here -->
+                    </ul>
+                </div>
+                 <!-- Job Categories (Sales) -->
+                 <div class="bg-zinc-800 p-4 rounded-xl shadow-inner">
+                    <h3 class="text-xl font-semibold mb-3 text-gray-400">Категории услуг</h3>
+                    <form id="job-category-form" class="flex gap-3 mb-3">
+                        <input type="text" id="job-category-name" placeholder="Название категории" class="form-input flex-1" required>
+                        <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold py-2 px-3 rounded-xl transition-colors">Добавить</button>
+                    </form>
+                    <ul id="job-categories-list" class="space-y-2 text-sm">
+                        <!-- Categories will be rendered here -->
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sales/Calculation Modal -->
+        <div id="sales-modal" class="fixed inset-0 modal-overlay hidden items-center justify-center p-4 z-50">
+            <div class="bg-zinc-800 p-6 rounded-2xl w-full max-w-lg shadow-2xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-white">Расчет и завершение</h3>
+                    <button id="close-modal" class="text-gray-400 hover:text-white transition-colors"><i class="ph ph-x text-xl"></i></button>
+                </div>
+                <form id="sales-form" class="text-sm">
+                    <input type="hidden" id="sales-appointment-id">
+                    <h4 class="text-md font-semibold mb-2 text-gray-300">Использованные материалы</h4>
+                    <div id="material-usage-list" class="space-y-2 mb-3">
+                        <!-- Material inputs will be rendered here -->
+                    </div>
+                    <button type="button" id="add-material-btn" class="text-sky-400 hover:underline mb-4 flex items-center gap-1"><i class="ph ph-plus-circle"></i> Добавить материал</button>
+                    
+                    <div class="space-y-3">
+                        <label class="block">
+                            <span class="text-gray-400">Длительность работы (часы):</span>
+                            <input type="number" step="0.5" id="work-duration" class="form-input mt-1 w-full" required>
+                        </label>
+                        <label class="block">
+                            <span class="text-gray-400">Наценка за сложность (%):</span>
+                            <input type="number" step="1" min="0" max="100" id="complexity-factor" class="form-input mt-1 w-full" value="0" required>
+                        </label>
+                        <label class="block">
+                            <span class="text-gray-400">Категория услуги:</span>
+                            <select id="sales-job-category" class="form-input mt-1 w-full" required>
+                                <option value="">Выберите категорию</option>
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="text-gray-400">Способ оплаты:</span>
+                            <select id="sales-payment-method" class="form-input mt-1 w-full" required>
+                                <option value="Готівка">Готівка</option>
+                                <option value="Картка">Картка</option>
+                            </select>
+                        </label>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-zinc-700 rounded-xl text-center">
+                        <p class="text-gray-400 text-sm">Итоговая стоимость:</p>
+                        <p id="final-price" class="text-4xl font-bold text-emerald-400">0 ₴</p>
+                    </div>
+
+                    <div class="mt-4 flex justify-between gap-3">
+                        <button type="button" id="calculate-price-btn" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-3 rounded-xl transition-colors text-sm">Рассчитать</button>
+                        <button type="submit" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-3 rounded-xl transition-colors text-sm">Завершить и Оплатить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Shift Modal -->
+        <div id="shift-modal" class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50">
+            <div class="bg-zinc-800 p-8 rounded-2xl w-full max-w-lg shadow-2xl text-center">
+                <h3 class="text-2xl font-semibold mb-4 text-white">Смена не открыта</h3>
+                <p class="text-gray-400 mb-6">Чтобы начать работу, пожалуйста, откройте новую смену.</p>
+                <button id="open-shift-btn" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-5 rounded-xl transition-colors text-sm">Открыть смену</button>
+            </div>
+        </div>
+
+        <!-- Custom Alert/Confirm Modal -->
+        <div id="custom-alert-modal" class="fixed inset-0 modal-overlay hidden items-center justify-center p-4 z-50">
+            <div class="bg-zinc-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
+                <p id="modal-message" class="text-md font-medium mb-4"></p>
+                <div class="flex justify-center space-x-3">
+                    <button id="modal-confirm-btn" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-5 rounded-xl hidden text-sm">Да</button>
+                    <button id="modal-ok-btn" class="bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 px-5 rounded-xl hidden text-sm">OK</button>
+                    <button id="modal-cancel-btn" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-5 rounded-xl hidden text-sm">Отмена</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // ====================================================================
+            // Configuration & Initialization
+            // ВАЖНО: Замените на ваши данные проекта Supabase
+            // ====================================================================
+            const SUPABASE_URL = 'https://wdfpusnhkpkwupuuanar.supabase.co'; // Replace with your URL
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkZnB1c25oa3Brd3VwdXVhbmFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgyNzY2MTIsImV4cCI6MjA2Mzg1MjYxMn0.w83zm_VOHLjvdLsvGKLp11gBBNLev9ICnm7XHzrQdmE'; // Replace with your anon key
+
+            const { createClient } = supabase;
+            const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            const USER_ID = 'single_user_crm'; // For a single user app, we can use a fixed ID.
+
+            let currentShiftId = null;
+
+            // ====================================================================
+            // UI Elements and Navigation
+            // ====================================================================
+            const navButtons = document.querySelectorAll('.nav-button');
+            const panels = document.querySelectorAll('.panel');
+            const clientsList = document.getElementById('clients-list');
+            const appointmentsList = document.getElementById('appointments-list');
+            const materialsList = document.getElementById('materials-list');
+            const clientForm = document.getElementById('client-form');
+            const appointmentForm = document.getElementById('appointment-form');
+            const materialForm = document.getElementById('material-form');
+            const salesModal = document.getElementById('sales-modal');
+            const closeSalesModalBtn = document.getElementById('close-modal');
+            const upcomingAppointmentsDiv = document.getElementById('upcoming-appointments');
+            const materialUsageList = document.getElementById('material-usage-list');
+            const addMaterialBtn = document.getElementById('add-material-btn');
+            const salesForm = document.getElementById('sales-form');
+            const calculatePriceBtn = document.getElementById('calculate-price-btn');
+            const finalPriceEl = document.getElementById('final-price');
+            const totalAppointmentsEl = document.getElementById('total-appointments');
+            const totalIncomeEl = document.getElementById('total-income');
+            const lowStockCountEl = document.getElementById('low-stock-count');
+            const totalBalanceEl = document.getElementById('total-balance');
+            const salesByCategoryList = document.getElementById('sales-by-category-list');
+            const expensesByCategoryList = document.getElementById('expenses-by-category-list');
+            const totalSalesReportEl = document.getElementById('total-sales');
+            const totalExpensesReportEl = document.getElementById('total-expenses');
+            const marginalityEl = document.getElementById('marginality');
+            const totalBalanceReportEl = document.getElementById('total-balance-report');
+            const newClientFormSection = document.getElementById('new-client-form-section');
+            const appointmentClientSelect = document.getElementById('appointment-client');
+            const expenseForm = document.getElementById('expense-form');
+            const ratesForm = document.getElementById('rates-form');
+            const materialCategoryForm = document.getElementById('material-category-form');
+            const materialCategoriesList = document.getElementById('material-categories-list');
+            const jobCategoryForm = document.getElementById('job-category-form');
+            const jobCategoriesList = document.getElementById('job-categories-list');
+            const reportPeriodSelect = document.getElementById('report-period');
+            const reportFilterSelect = document.getElementById('report-filter');
+            const expenseCategorySelect = document.getElementById('expense-category');
+            const salesJobCategorySelect = document.getElementById('sales-job-category');
+            const shiftModal = document.getElementById('shift-modal');
+            const openShiftBtn = document.getElementById('open-shift-btn');
+            const reportTypeButtons = document.querySelectorAll('[data-report-type]');
+            const reportPanels = document.querySelectorAll('.report-panel');
+            const shiftsListEl = document.getElementById('shifts-list');
+            const shiftDetailsView = document.getElementById('shift-details-view');
+            const shiftListView = document.getElementById('shift-list-view');
+            const backToShiftsBtn = document.getElementById('back-to-shifts-btn');
+            const shiftSalesList = document.getElementById('shift-sales-list');
+            const shiftExpensesList = document.getElementById('shift-expenses-list');
+            const shiftDateDetails = document.getElementById('shift-date-details');
+            const shiftSalesTotal = document.getElementById('shift-sales-total');
+            const shiftExpensesTotal = document.getElementById('shift-expenses-total');
+            const shiftProfitTotal = document.getElementById('shift-profit-total');
+
+            const customAlertModal = document.getElementById('custom-alert-modal');
+            const modalMessageEl = document.getElementById('modal-message');
+            const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+            const modalOkBtn = document.getElementById('modal-ok-btn');
+            const modalCancelBtn = document.getElementById('modal-cancel-btn');
+            
+            let currentMaterials = [];
+            let currentMaterialCategories = [];
+            let currentJobCategories = [];
+            let hourlyRate = 0;
+            let complexityMarkup = 0;
+
+            // Custom modal function instead of alert/confirm
+            function showModal(message, type = 'alert') {
+                return new Promise((resolve) => {
+                    modalMessageEl.textContent = message;
+                    modalConfirmBtn.classList.add('hidden');
+                    modalOkBtn.classList.add('hidden');
+                    modalCancelBtn.classList.add('hidden');
+
+                    if (type === 'confirm') {
+                        modalConfirmBtn.classList.remove('hidden');
+                        modalCancelBtn.classList.remove('hidden');
+                        modalConfirmBtn.onclick = () => {
+                            customAlertModal.classList.add('hidden');
+                            resolve(true);
+                        };
+                        modalCancelBtn.onclick = () => {
+                            customAlertModal.classList.add('hidden');
+                            resolve(false);
+                        };
+                    } else { // type === 'alert'
+                        modalOkBtn.classList.remove('hidden');
+                        modalOkBtn.onclick = () => {
+                            customAlertModal.classList.add('hidden');
+                            resolve(true);
+                        };
+                    }
+
+                    customAlertModal.classList.remove('hidden');
+                });
+            }
+
+            // Event listeners for navigation
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const panelId = button.dataset.panel;
+                    panels.forEach(panel => {
+                        panel.classList.remove('active-panel');
+                    });
+                    document.getElementById(panelId).classList.add('active-panel');
+                    // Fetch data for the selected panel
+                    if (panelId === 'clients') fetchClients();
+                    if (panelId === 'appointments') fetchAppointments();
+                    if (panelId === 'inventory') fetchMaterials();
+                    if (panelId === 'reports') fetchReports();
+                    if (panelId === 'settings') fetchSettings();
+                });
+            });
+
+            reportTypeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    reportPanels.forEach(panel => panel.classList.add('hidden'));
+                    document.getElementById(button.dataset.reportType + '-report-panel').classList.remove('hidden');
+                    if (button.dataset.reportType === 'shifts') {
+                        fetchShifts();
+                    } else {
+                        fetchReports();
+                    }
+                });
+            });
+
+            closeSalesModalBtn.addEventListener('click', () => {
+                salesModal.classList.add('hidden');
+            });
+
+            // Handle new client form visibility
+            appointmentClientSelect.addEventListener('change', (e) => {
+                if (e.target.value === 'new-client') {
+                    newClientFormSection.classList.remove('hidden');
+                    document.getElementById('new-client-name').disabled = false;
+                    document.getElementById('new-client-phone').disabled = false;
+                } else {
+                    newClientFormSection.classList.add('hidden');
+                    document.getElementById('new-client-name').disabled = true;
+                    document.getElementById('new-client-phone').disabled = true;
+                }
+            });
+
+
+            // ====================================================================
+            // Shift Management Logic
+            // ====================================================================
+            async function checkActiveShift() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('shifts')
+                        .select('*')
+                        .eq('user_id', USER_ID)
+                        .is('end_time', null)
+                        .order('start_time', { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    if (error && error.code !== 'PGRST116') {
+                        throw error;
+                    }
+
+                    if (data) {
+                        const now = new Date();
+                        const shiftStartTime = new Date(data.start_time);
+                        // Convert both times to Kyiv time for comparison
+                        const kyivTime = new Intl.DateTimeFormat('en-US', {
+                            timeZone: 'Europe/Kyiv',
+                            hour12: false,
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                        }).format(now);
+                        const [datePart, timePart] = kyivTime.split(', ');
+                        const [month, day, year] = datePart.split('/');
+                        const [hour, minute, second] = timePart.split(':');
+                        const kyivDate = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`);
+                        const midnightOfShiftDay = new Date(shiftStartTime);
+                        midnightOfShiftDay.setDate(midnightOfShiftDay.getDate() + 1);
+                        midnightOfShiftDay.setHours(0, 0, 0, 0);
+
+                        if (kyivDate > midnightOfShiftDay) {
+                            // Automatically close the shift
+                            const { error: closeError } = await closeShift(data.id);
+                            if (closeError) throw closeError;
+                            showModal('Ваша смена была автоматически закрыта, так как наступил следующий день.');
+                            shiftModal.classList.remove('hidden');
+                        } else {
+                            currentShiftId = data.id;
+                            shiftModal.classList.add('hidden');
+                        }
+                    } else {
+                        shiftModal.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error('Error checking active shift:', error.message);
+                    showModal('Произошла ошибка при проверке смены.');
+                }
+            }
+
+            async function openShift() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('shifts')
+                        .insert({ start_time: new Date().toISOString(), user_id: USER_ID })
+                        .select()
+                        .single();
+
+                    if (error) throw error;
+                    currentShiftId = data.id;
+                    shiftModal.classList.add('hidden');
+                    showModal('Новая смена успешно открыта!');
+                } catch (error) {
+                    console.error('Error opening shift:', error.message);
+                    showModal('Произошла ошибка при открытии смены.');
+                }
+            }
+
+            async function closeShift(shiftId) {
+                try {
+                    const { data: sales } = await supabaseClient.from('sales').select('total_price').eq('shift_id', shiftId);
+                    const { data: expenses } = await supabaseClient.from('expenses').select('amount').eq('shift_id', shiftId);
+                    const { data: salesIds } = await supabaseClient.from('sales').select('id').eq('shift_id', shiftId);
+                    const { data: expensesIds } = await supabaseClient.from('expenses').select('id').eq('shift_id', shiftId);
+
+                    const totalSales = sales.reduce((sum, sale) => sum + parseFloat(sale.total_price), 0);
+                    const totalExpenses = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+                    const salesArray = salesIds.map(s => s.id);
+                    const expensesArray = expensesIds.map(e => e.id);
+
+                    const { error } = await supabaseClient
+                        .from('shifts')
+                        .update({
+                            end_time: new Date().toISOString(),
+                            total_sales: totalSales,
+                            total_expenses: totalExpenses,
+                            shift_sales: JSON.stringify(salesArray),
+                            shift_expenses: JSON.stringify(expensesArray)
+                        })
+                        .eq('id', shiftId);
+
+                    return { error };
+                } catch (error) {
+                    console.error('Error calculating and closing shift:', error.message);
+                    return { error };
+                }
+            }
+            
+            openShiftBtn.addEventListener('click', openShift);
+
+            // ====================================================================
+            // Data Fetching and Rendering Functions
+            // ====================================================================
+
+            async function fetchSettings() {
+                try {
+                    const { data: settings, error: settingsError } = await supabaseClient.from('settings').select('*').single();
+                    if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
+                    if (settings) {
+                        document.getElementById('hourly-rate').value = settings.hourly_rate;
+                        document.getElementById('complexity-markup').value = settings.complexity_markup;
+                        hourlyRate = settings.hourly_rate;
+                        complexityMarkup = settings.complexity_markup;
+                    }
+
+                    const { data: materialCats, error: matCatError } = await supabaseClient.from('categories').select('*').order('name');
+                    if (matCatError) throw matCatError;
+                    currentMaterialCategories = materialCats;
+                    renderMaterialCategories();
+                    
+                    const { data: jobCats, error: jobCatError } = await supabaseClient.from('job_categories').select('*').order('name');
+                    if (jobCatError) throw jobCatError;
+                    currentJobCategories = jobCats;
+                    renderJobCategories();
+
+                } catch (error) {
+                    console.error('Error fetching settings:', error.message);
+                }
+            }
+
+            async function fetchDashboardData() {
+                try {
+                    const { data: appointments, count: totalCount } = await supabaseClient.from('appointments').select('*', { count: 'exact' });
+                    const { data: sales } = await supabaseClient.from('sales').select('total_price');
+                    const { data: expenses } = await supabaseClient.from('expenses').select('amount');
+                    const { data: materials } = await supabaseClient.from('materials').select('*').lt('quantity', 5);
+
+                    totalAppointmentsEl.textContent = totalCount || 0;
+                    const totalIncome = sales.reduce((sum, sale) => sum + parseFloat(sale.total_price), 0);
+                    const totalExpenses = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+                    totalIncomeEl.textContent = `${totalIncome.toFixed(2)} ₴`;
+                    lowStockCountEl.textContent = materials.length;
+                    totalBalanceEl.textContent = `${(totalIncome - totalExpenses).toFixed(2)} ₴`;
+
+                    // Upcoming appointments
+                    const now = new Date();
+                    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+                    const { data: upcoming } = await supabaseClient
+                        .from('appointments')
+                        .select('*, client:clients(name)')
+                        .gte('date', now.toISOString())
+                        .lte('date', endOfDay.toISOString())
+                        .order('date', { ascending: true });
+
+                    upcomingAppointmentsDiv.innerHTML = '';
+                    if (upcoming.length > 0) {
+                        upcoming.forEach(appt => {
+                            const date = new Date(appt.date);
+                            const element = document.createElement('div');
+                            element.className = 'p-3 bg-zinc-800 rounded-xl shadow-inner text-sm';
+                            element.innerHTML = `
+                                <p class="font-medium text-sky-400">${appt.client.name}</p>
+                                <p class="text-xs text-gray-400">${date.toLocaleString('ru-RU', { dateStyle: 'long', timeStyle: 'short' })}</p>
+                            `;
+                            upcomingAppointmentsDiv.appendChild(element);
+                        });
+                    } else {
+                        upcomingAppointmentsDiv.innerHTML = '<p class="text-gray-400 text-sm">На сегодня записей нет.</p>';
+                    }
+                } catch (error) {
+                    console.error('Error fetching dashboard data:', error.message);
+                }
+            }
+
+            async function fetchClients() {
+                try {
+                    const { data, error } = await supabaseClient.from('clients').select('*').order('created_at', { ascending: false });
+                    if (error) throw error;
+                    clientsList.innerHTML = '';
+                    data.forEach(client => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="px-4 py-2 whitespace-nowrap">${client.name}</td>
+                            <td class="px-4 py-2 whitespace-nowrap">${client.phone || ''}</td>
+                            <td class="px-4 py-2 whitespace-nowrap">
+                                <button data-id="${client.id}" class="edit-client-btn text-sky-400 hover:text-sky-600 mr-2"><i class="ph ph-note-pencil text-md"></i></button>
+                                <button data-id="${client.id}" class="delete-client-btn text-red-400 hover:text-red-600"><i class="ph ph-trash text-md"></i></button>
+                            </td>
+                        `;
+                        clientsList.appendChild(row);
+                    });
+                    attachClientEventListeners();
+                } catch (error) {
+                    console.error('Error fetching clients:', error.message);
+                }
+            }
+
+            async function fetchAppointments() {
+                try {
+                    const { data: clients } = await supabaseClient.from('clients').select('id, name').order('name');
+                    const clientSelect = document.getElementById('appointment-client');
+                    clientSelect.innerHTML = '<option value="">Выберите клиента</option><option value="new-client">+ Создать нового клиента</option>';
+                    clients.forEach(client => {
+                        const option = document.createElement('option');
+                        option.value = client.id;
+                        option.textContent = client.name;
+                        clientSelect.appendChild(option);
+                    });
+
+                    const { data, error } = await supabaseClient
+                        .from('appointments')
+                        .select('*, client:clients(name)')
+                        .order('date', { ascending: false });
+                    if (error) throw error;
+
+                    appointmentsList.innerHTML = '';
+                    data.forEach(appt => {
+                        const element = document.createElement('div');
+                        element.className = 'p-3 bg-zinc-800 rounded-xl shadow-inner flex justify-between items-center text-sm';
+                        const date = new Date(appt.date);
+                        element.innerHTML = `
+                            <div>
+                                <p class="font-semibold text-white">${appt.client.name}</p>
+                                <p class="text-xs text-gray-400">Дата: ${date.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                                <p class="text-xs text-gray-400">Продолжительность: ${appt.duration} мин</p>
+                                <p class="text-xs text-gray-400">Статус: <span class="${getStatusColor(appt.status)}">${appt.status}</span></p>
+                            </div>
+                            <div>
+                                <button data-id="${appt.id}" class="edit-appointment-btn text-sky-400 hover:text-sky-600 mr-2"><i class="ph ph-note-pencil text-md"></i></button>
+                                <button data-id="${appt.id}" class="complete-appointment-btn text-emerald-400 hover:text-emerald-600 mr-2"><i class="ph ph-check-circle text-md"></i></button>
+                                <button data-id="${appt.id}" class="delete-appointment-btn text-red-400 hover:text-red-600"><i class="ph ph-trash text-md"></i></button>
+                            </div>
+                        `;
+                        appointmentsList.appendChild(element);
+                    });
+                    attachAppointmentEventListeners();
+                } catch (error) {
+                    console.error('Error fetching appointments:', error.message);
+                }
+            }
+            
+            function getStatusColor(status) {
+                switch(status) {
+                    case 'В процессе': return 'text-blue-400';
+                    case 'Завершено': return 'text-emerald-400';
+                    case 'Отменено': return 'text-red-400';
+                    default: return 'text-amber-400';
+                }
+            }
+
+            async function fetchMaterials() {
+                try {
+                    const { data, error } = await supabaseClient.from('materials').select('*').order('name');
+                    if (error) throw error;
+                    currentMaterials = data;
+                    materialsList.innerHTML = '';
+                    data.forEach(material => {
+                        const row = document.createElement('tr');
+                        const isLowStock = material.quantity <= material.min_stock;
+                        row.className = isLowStock ? 'bg-red-900' : '';
+                        row.innerHTML = `
+                            <td class="px-4 py-2 whitespace-nowrap">${material.name}</td>
+                            <td class="px-4 py-2 whitespace-nowrap">${material.category || ''}</td>
+                            <td class="px-4 py-2 whitespace-nowrap">${material.quantity}</td>
+                            <td class="px-4 py-2 whitespace-nowrap">${material.cost_per_unit} ₴</td>
+                            <td class="px-4 py-2 whitespace-nowrap">${material.min_stock}</td>
+                            <td class="px-4 py-2 whitespace-nowrap">
+                                <button data-id="${material.id}" class="edit-material-btn text-sky-400 hover:text-sky-600 mr-2"><i class="ph ph-note-pencil text-md"></i></button>
+                                <button data-id="${material.id}" class="delete-material-btn text-red-400 hover:text-red-600"><i class="ph ph-trash text-md"></i></button>
+                            </td>
+                        `;
+                        materialsList.appendChild(row);
+                    });
+                    attachMaterialEventListeners();
+                } catch (error) {
+                    console.error('Error fetching materials:', error.message);
+                }
+            }
+            
+            function renderMaterialCategories() {
+                const materialCategorySelect = document.getElementById('material-category');
+                materialCategorySelect.innerHTML = '<option value="">Выберите категорию</option>';
+                currentMaterialCategories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.name;
+                    option.textContent = cat.name;
+                    materialCategorySelect.appendChild(option);
+                });
+                materialCategoriesList.innerHTML = '';
+                currentMaterialCategories.forEach(cat => {
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center p-2 bg-zinc-700 rounded-xl';
+                    li.innerHTML = `
+                        <span class="text-sm">${cat.name}</span>
+                        <button data-id="${cat.id}" class="delete-material-category-btn text-red-400 hover:text-red-600"><i class="ph ph-trash text-md"></i></button>
+                    `;
+                    materialCategoriesList.appendChild(li);
+                });
+                attachCategoryEventListeners('material');
+            }
+
+            function renderJobCategories() {
+                const salesJobCategorySelect = document.getElementById('sales-job-category');
+                const expenseCategorySelect = document.getElementById('expense-category');
+                
+                salesJobCategorySelect.innerHTML = '<option value="">Выберите категорию</option>';
+                expenseCategorySelect.innerHTML = '<option value="">Выберите категорию</option>';
+                
+                currentJobCategories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name;
+                    salesJobCategorySelect.appendChild(option);
+                });
+                currentMaterialCategories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.name;
+                    option.textContent = cat.name;
+                    expenseCategorySelect.appendChild(option);
+                });
+
+                jobCategoriesList.innerHTML = '';
+                currentJobCategories.forEach(cat => {
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center p-2 bg-zinc-700 rounded-xl';
+                    li.innerHTML = `
+                        <span class="text-sm">${cat.name}</span>
+                        <button data-id="${cat.id}" class="delete-job-category-btn text-red-400 hover:text-red-600"><i class="ph ph-trash text-md"></i></button>
+                    `;
+                    jobCategoriesList.appendChild(li);
+                });
+                attachCategoryEventListeners('job');
+            }
+
+            async function fetchReports() {
+                try {
+                    const { data: sales, error: salesError } = await supabaseClient.from('sales').select('*, job_category:job_categories(name)').order('created_at', { ascending: false });
+                    const { data: expenses, error: expensesError } = await supabaseClient.from('expenses').select('*').order('created_at', { ascending: false });
+                    if (salesError) throw salesError;
+                    if (expensesError) throw expensesError;
+                    
+                    const totalSales = sales.reduce((sum, sale) => sum + parseFloat(sale.total_price), 0);
+                    const totalExpenses = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+                    const marginality = (totalSales - totalExpenses) / totalSales * 100;
+                    const totalBalance = totalSales - totalExpenses;
+
+                    totalSalesReportEl.textContent = `${totalSales.toFixed(2)} ₴`;
+                    totalExpensesReportEl.textContent = `${totalExpenses.toFixed(2)} ₴`;
+                    marginalityEl.textContent = `${isFinite(marginality) ? marginality.toFixed(2) : 0}%`;
+                    totalBalanceReportEl.textContent = `${totalBalance.toFixed(2)} ₴`;
+                    
+                    // Group data by period
+                    const salesByPeriod = groupByPeriod(sales, 'created_at', reportPeriodSelect.value);
+                    const expensesByPeriod = groupByPeriod(expenses, 'created_at', reportPeriodSelect.value);
+
+                    // Populate filter dropdown
+                    const periods = [...new Set([...Object.keys(salesByPeriod), ...Object.keys(expensesByPeriod)])].sort((a, b) => new Date(b) - new Date(a));
+                    reportFilterSelect.innerHTML = periods.map(p => `<option value="${p}">${p}</option>`).join('');
+
+                    // Render categories for a specific period
+                    const selectedPeriod = reportFilterSelect.value || periods[0];
+                    renderCategoryReports(salesByPeriod[selectedPeriod] || [], expensesByPeriod[selectedPeriod] || []);
+
+                } catch (error) {
+                    console.error('Error fetching reports:', error.message);
+                }
+            }
+            
+            reportPeriodSelect.addEventListener('change', fetchReports);
+            reportFilterSelect.addEventListener('change', fetchReports);
+
+            function groupByPeriod(data, dateKey, periodType) {
+                const grouped = {};
+                data.forEach(item => {
+                    const date = new Date(item[dateKey]);
+                    let period;
+                    if (periodType === 'month') {
+                        period = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                    } else if (periodType === 'week') {
+                        const firstDayOfWeek = new Date(date);
+                        firstDayOfWeek.setDate(date.getDate() - date.getDay());
+                        period = `${firstDayOfWeek.getFullYear()}-W${getWeekNumber(firstDayOfWeek)}`;
+                    }
+                    if (!grouped[period]) {
+                        grouped[period] = [];
+                    }
+                    grouped[period].push(item);
+                });
+                return grouped;
+            }
+
+            function getWeekNumber(d) {
+                d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+                d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+                const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+                const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+                return weekNo.toString().padStart(2, '0');
+            }
+
+            function renderCategoryReports(sales, expenses) {
+                const salesByCategory = sales.reduce((acc, sale) => {
+                    const categoryName = sale.job_category?.name || 'Без категории';
+                    acc[categoryName] = (acc[categoryName] || 0) + parseFloat(sale.total_price);
+                    return acc;
+                }, {});
+
+                const expensesByCategory = expenses.reduce((acc, expense) => {
+                    const categoryName = expense.category || 'Без категории';
+                    acc[categoryName] = (acc[categoryName] || 0) + parseFloat(expense.amount);
+                    return acc;
+                }, {});
+
+                salesByCategoryList.innerHTML = '';
+                for (const cat in salesByCategory) {
+                    const div = document.createElement('div');
+                    div.className = 'p-2 bg-zinc-700 rounded-xl flex justify-between items-center text-sm';
+                    div.innerHTML = `
+                        <p class="text-gray-300">${cat}</p>
+                        <p class="font-semibold text-emerald-400">${salesByCategory[cat].toFixed(2)} ₴</p>
+                    `;
+                    salesByCategoryList.appendChild(div);
+                }
+
+                expensesByCategoryList.innerHTML = '';
+                for (const cat in expensesByCategory) {
+                    const div = document.createElement('div');
+                    div.className = 'p-2 bg-zinc-700 rounded-xl flex justify-between items-center text-sm';
+                    div.innerHTML = `
+                        <p class="text-gray-300">${cat}</p>
+                        <p class="font-semibold text-red-400">${expensesByCategory[cat].toFixed(2)} ₴</p>
+                    `;
+                    expensesByCategoryList.appendChild(div);
+                }
+            }
+
+            async function fetchShifts() {
+                try {
+                    shiftDetailsView.classList.add('hidden');
+                    shiftListView.classList.remove('hidden');
+                    const { data, error } = await supabaseClient
+                        .from('shifts')
+                        .select('*')
+                        .eq('user_id', USER_ID)
+                        .not('end_time', 'is', null)
+                        .order('start_time', { ascending: false });
+
+                    if (error) throw error;
+                    
+                    shiftsListEl.innerHTML = '';
+                    data.forEach(shift => {
+                        const start = new Date(shift.start_time);
+                        const end = new Date(shift.end_time);
+                        const profit = (shift.total_sales || 0) - (shift.total_expenses || 0);
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="px-4 py-2 whitespace-nowrap">${start.toLocaleDateString('ru-RU')}</td>
+                            <td class="px-4 py-2 whitespace-nowrap">${start.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</td>
+                            <td class="px-4 py-2 whitespace-nowrap">${end.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-emerald-400">${(shift.total_sales || 0).toFixed(2)} ₴</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-red-400">${(shift.total_expenses || 0).toFixed(2)} ₴</td>
+                            <td class="px-4 py-2 whitespace-nowrap">
+                                <button data-id="${shift.id}" class="view-shift-btn text-sky-400 hover:text-sky-600">Подробнее</button>
+                            </td>
+                        `;
+                        shiftsListEl.appendChild(row);
+                    });
+                    attachShiftEventListeners();
+                } catch (error) {
+                    console.error('Error fetching shifts:', error.message);
+                }
+            }
+
+            async function viewShiftDetails(shiftId) {
+                try {
+                    shiftListView.classList.add('hidden');
+                    shiftDetailsView.classList.remove('hidden');
+
+                    const { data: shift, error: shiftError } = await supabaseClient.from('shifts').select('*').eq('id', shiftId).single();
+                    if (shiftError) throw shiftError;
+                    
+                    const { data: sales, error: salesError } = await supabaseClient.from('sales').select('*, job_category:job_categories(name)').in('id', shift.shift_sales || []);
+                    if (salesError) throw salesError;
+
+                    const { data: expenses, error: expensesError } = await supabaseClient.from('expenses').select('*').in('id', shift.shift_expenses || []);
+                    if (expensesError) throw expensesError;
+
+                    shiftDateDetails.textContent = new Date(shift.start_time).toLocaleDateString('ru-RU');
+                    shiftSalesTotal.textContent = `${(shift.total_sales || 0).toFixed(2)} ₴`;
+                    shiftExpensesTotal.textContent = `${(shift.total_expenses || 0).toFixed(2)} ₴`;
+                    shiftProfitTotal.textContent = `${((shift.total_sales || 0) - (shift.total_expenses || 0)).toFixed(2)} ₴`;
+                    
+                    shiftSalesList.innerHTML = '';
+                    sales.forEach(s => {
+                        const div = document.createElement('div');
+                        div.className = 'p-2 bg-zinc-700 rounded-xl flex justify-between items-center text-sm';
+                        div.innerHTML = `
+                            <span>${s.job_category?.name || 'Без категории'}</span>
+                            <span class="text-emerald-400">${s.total_price.toFixed(2)} ₴</span>
+                        `;
+                        shiftSalesList.appendChild(div);
+                    });
+
+                    shiftExpensesList.innerHTML = '';
+                    expenses.forEach(e => {
+                        const div = document.createElement('div');
+                        div.className = 'p-2 bg-zinc-700 rounded-xl flex justify-between items-center text-sm';
+                        div.innerHTML = `
+                            <span>${e.description}</span>
+                            <span class="text-red-400">${e.amount.toFixed(2)} ₴</span>
+                        `;
+                        shiftExpensesList.appendChild(div);
+                    });
+
+                } catch (error) {
+                    console.error('Error viewing shift details:', error.message);
+                    showModal('Не удалось загрузить детали смены.');
+                }
+            }
+
+            function attachShiftEventListeners() {
+                document.querySelectorAll('.view-shift-btn').forEach(button => {
+                    button.addEventListener('click', () => {
+                        viewShiftDetails(button.dataset.id);
+                    });
+                });
+            }
+
+            backToShiftsBtn.addEventListener('click', () => {
+                fetchShifts();
+            });
+
+
+            // ====================================================================
+            // CRUD Operation Handlers
+            // ====================================================================
+
+            clientForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('client-id').value;
+                const name = document.getElementById('client-name').value;
+                const phone = document.getElementById('client-phone').value;
+                const email = document.getElementById('client-email').value;
+                const notes = document.getElementById('client-notes').value;
+
+                try {
+                    if (id) {
+                        await supabaseClient.from('clients').update({ name, phone, email, notes }).eq('id', id);
+                        showModal('Данные клиента успешно обновлены.');
+                    } else {
+                        await supabaseClient.from('clients').insert([{ name, phone, email, notes }]);
+                        showModal('Новый клиент успешно добавлен.');
+                    }
+                    clientForm.reset();
+                    document.getElementById('client-id').value = '';
+                    fetchClients();
+                } catch (error) {
+                    console.error('Error saving client:', error.message);
+                    showModal('Произошла ошибка при сохранении клиента.');
+                }
+            });
+
+            function attachClientEventListeners() {
+                document.querySelectorAll('.edit-client-btn').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const id = button.dataset.id;
+                        const { data, error } = await supabaseClient.from('clients').select('*').eq('id', id).single();
+                        if (error) { console.error('Error fetching client:', error.message); return; }
+                        document.getElementById('client-id').value = data.id;
+                        document.getElementById('client-name').value = data.name;
+                        document.getElementById('client-phone').value = data.phone;
+                        document.getElementById('client-email').value = data.email;
+                        document.getElementById('client-notes').value = data.notes;
+                    });
+                });
+
+                document.querySelectorAll('.delete-client-btn').forEach(async (button) => {
+                    button.addEventListener('click', async () => {
+                        const confirmed = await showModal('Вы уверены, что хотите удалить этого клиента?', 'confirm');
+                        if (confirmed) {
+                            const id = button.dataset.id;
+                            await supabaseClient.from('clients').delete().eq('id', id);
+                            fetchClients();
+                        }
+                    });
+                });
+            }
+
+            appointmentForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('appointment-id').value;
+                let client_id = document.getElementById('appointment-client').value;
+                const date = document.getElementById('appointment-date').value;
+                const duration = document.getElementById('appointment-duration').value;
+                const status = document.getElementById('appointment-status').value;
+
+                try {
+                    if (!currentShiftId) {
+                        showModal('Сначала необходимо открыть смену!');
+                        return;
+                    }
+
+                    // Create new client if option is selected
+                    if (client_id === 'new-client') {
+                        const newClientName = document.getElementById('new-client-name').value;
+                        const newClientPhone = document.getElementById('new-client-phone').value;
+                        const { data, error } = await supabaseClient.from('clients').insert([{ name: newClientName, phone: newClientPhone }]).select().single();
+                        if (error) throw error;
+                        client_id = data.id;
+                    }
+                    
+                    if (id) {
+                        await supabaseClient.from('appointments').update({ client_id, date, duration, status }).eq('id', id);
+                        showModal('Запись успешно обновлена.');
+                    } else {
+                        await supabaseClient.from('appointments').insert([{ client_id, date, duration, status }]);
+                        showModal('Новая запись успешно создана.');
+                    }
+                    appointmentForm.reset();
+                    document.getElementById('appointment-id').value = '';
+                    newClientFormSection.classList.add('hidden');
+                    fetchAppointments();
+                } catch (error) {
+                    console.error('Error saving appointment:', error.message);
+                    showModal('Произошла ошибка при сохранении записи.');
+                }
+            });
+
+            function attachAppointmentEventListeners() {
+                document.querySelectorAll('.edit-appointment-btn').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const id = button.dataset.id;
+                        const { data, error } = await supabaseClient.from('appointments').select('*').eq('id', id).single();
+                        if (error) { console.error('Error fetching appointment:', error.message); return; }
+                        document.getElementById('appointment-id').value = data.id;
+                        document.getElementById('appointment-client').value = data.client_id;
+                        document.getElementById('appointment-date').value = data.date.slice(0, 16);
+                        document.getElementById('appointment-duration').value = data.duration;
+                        document.getElementById('appointment-status').value = data.status;
+                        newClientFormSection.classList.add('hidden');
+                    });
+                });
+
+                document.querySelectorAll('.delete-appointment-btn').forEach(async (button) => {
+                    button.addEventListener('click', async () => {
+                        const confirmed = await showModal('Вы уверены, что хотите удалить эту запись?', 'confirm');
+                        if (confirmed) {
+                            const id = button.dataset.id;
+                            await supabaseClient.from('appointments').delete().eq('id', id);
+                            fetchAppointments();
+                        }
+                    });
+                });
+
+                document.querySelectorAll('.complete-appointment-btn').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        if (!currentShiftId) {
+                            showModal('Сначала необходимо открыть смену!');
+                            return;
+                        }
+                        const id = button.dataset.id;
+                        document.getElementById('sales-appointment-id').value = id;
+                        renderMaterialUsageInputs();
+                        salesModal.classList.remove('hidden');
+                        document.getElementById('work-duration').value = '';
+                        document.getElementById('complexity-factor').value = '0';
+                        document.getElementById('final-price').textContent = '0 ₴';
+                    });
+                });
+            }
+
+            materialForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('material-id').value;
+                const name = document.getElementById('material-name').value;
+                const quantity = parseInt(document.getElementById('material-quantity').value);
+                const cost_per_unit = parseFloat(document.getElementById('material-cost').value);
+                const min_stock = parseInt(document.getElementById('material-min-stock').value);
+                const category = document.getElementById('material-category').value;
+
+                try {
+                    if (id) {
+                        await supabaseClient.from('materials').update({ name, quantity, cost_per_unit, min_stock, category }).eq('id', id);
+                        showModal('Материал успешно обновлен.');
+                    } else {
+                        await supabaseClient.from('materials').insert([{ name, quantity, cost_per_unit, min_stock, category }]);
+                        showModal('Новый материал успешно добавлен.');
+                    }
+                    materialForm.reset();
+                    document.getElementById('material-id').value = '';
+                    fetchMaterials();
+                } catch (error) {
+                    console.error('Error saving material:', error.message);
+                    showModal('Произошла ошибка при сохранении материала.');
+                }
+            });
+            
+            function attachMaterialEventListeners() {
+                document.querySelectorAll('.edit-material-btn').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const id = button.dataset.id;
+                        const { data, error } = await supabaseClient.from('materials').select('*').eq('id', id).single();
+                        if (error) { console.error('Error fetching material:', error.message); return; }
+                        document.getElementById('material-id').value = data.id;
+                        document.getElementById('material-name').value = data.name;
+                        document.getElementById('material-quantity').value = data.quantity;
+                        document.getElementById('material-cost').value = data.cost_per_unit;
+                        document.getElementById('material-min-stock').value = data.min_stock;
+                        document.getElementById('material-category').value = data.category || '';
+                    });
+                });
+
+                document.querySelectorAll('.delete-material-btn').forEach(async (button) => {
+                    button.addEventListener('click', async () => {
+                        const confirmed = await showModal('Вы уверены, что хотите удалить этот материал?', 'confirm');
+                        if (confirmed) {
+                            const id = button.dataset.id;
+                            await supabaseClient.from('materials').delete().eq('id', id);
+                            fetchMaterials();
+                        }
+                    });
+                });
+            }
+
+            expenseForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!currentShiftId) {
+                    showModal('Сначала необходимо открыть смену!');
+                    return;
+                }
+                const description = document.getElementById('expense-description').value;
+                const amount = parseFloat(document.getElementById('expense-amount').value);
+                const category = document.getElementById('expense-category').value;
+                const payment_method = document.getElementById('expense-payment-method').value;
+                const date = document.getElementById('expense-date').value;
+                try {
+                    await supabaseClient.from('expenses').insert([{ description, amount, category, payment_method, date, shift_id: currentShiftId }]);
+                    showModal('Расход успешно добавлен.');
+                    expenseForm.reset();
+                    fetchReports();
+                    fetchDashboardData();
+                } catch (error) {
+                    console.error('Error adding expense:', error.message);
+                    showModal('Произошла ошибка при добавлении расхода.');
+                }
+            });
+
+            ratesForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const hourlyRateValue = parseFloat(document.getElementById('hourly-rate').value);
+                const complexityMarkupValue = parseFloat(document.getElementById('complexity-markup').value);
+                try {
+                    const { data } = await supabaseClient.from('settings').select('*').limit(1).single();
+                    if (data) {
+                        await supabaseClient.from('settings').update({ hourly_rate: hourlyRateValue, complexity_markup: complexityMarkupValue }).eq('id', data.id);
+                    } else {
+                        await supabaseClient.from('settings').insert([{ hourly_rate: hourlyRateValue, complexity_markup: complexityMarkupValue }]);
+                    }
+                    showModal('Настройки тарифов успешно сохранены.');
+                    fetchSettings();
+                } catch (error) {
+                    console.error('Error saving rates:', error.message);
+                    showModal('Произошла ошибка при сохранении тарифов.');
+                }
+            });
+
+            materialCategoryForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('material-category-name').value;
+                try {
+                    await supabaseClient.from('categories').insert([{ name }]);
+                    showModal('Категория материалов успешно добавлена.');
+                    materialCategoryForm.reset();
+                    fetchSettings();
+                } catch (error) {
+                    console.error('Error adding material category:', error.message);
+                    showModal('Произошла ошибка при добавлении категории материалов.');
+                }
+            });
+
+            jobCategoryForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('job-category-name').value;
+                try {
+                    await supabaseClient.from('job_categories').insert([{ name }]);
+                    showModal('Категория услуг успешно добавлена.');
+                    jobCategoryForm.reset();
+                    fetchSettings();
+                } catch (error) {
+                    console.error('Error adding job category:', error.message);
+                    showModal('Произошла ошибка при добавлении категории услуг.');
+                }
+            });
+
+            function attachCategoryEventListeners(type) {
+                const list = type === 'material' ? materialCategoriesList : jobCategoriesList;
+                const className = type === 'material' ? '.delete-material-category-btn' : '.delete-job-category-btn';
+                const tableName = type === 'material' ? 'categories' : 'job_categories';
+                
+                document.querySelectorAll(className).forEach(async (button) => {
+                    button.addEventListener('click', async () => {
+                        const confirmed = await showModal('Вы уверены, что хотите удалить эту категорию?', 'confirm');
+                        if (confirmed) {
+                            const id = button.dataset.id;
+                            await supabaseClient.from(tableName).delete().eq('id', id);
+                            fetchSettings();
+                        }
+                    });
+                });
+            }
+
+            // ====================================================================
+            // Sales/Calculation Logic
+            // ====================================================================
+            
+            function renderMaterialUsageInputs() {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex items-center gap-2';
+
+                const selectElement = document.createElement('select');
+                selectElement.className = 'form-input flex-1';
+                selectElement.innerHTML = `<option value="">Выберите материал</option>`;
+                currentMaterials.forEach(mat => {
+                    const option = document.createElement('option');
+                    option.value = mat.id;
+                    option.textContent = mat.name;
+                    selectElement.appendChild(option);
+                });
+                
+                const quantityInput = document.createElement('input');
+                quantityInput.type = 'number';
+                quantityInput.step = '0.01';
+                quantityInput.placeholder = 'Кол-во';
+                quantityInput.value = 1;
+                quantityInput.className = 'form-input w-24';
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.innerHTML = '<i class="ph ph-x-circle text-md"></i>';
+                removeBtn.className = 'text-red-400 hover:text-red-600 font-bold';
+                removeBtn.onclick = () => wrapper.remove();
+
+                wrapper.appendChild(selectElement);
+                wrapper.appendChild(quantityInput);
+                wrapper.appendChild(removeBtn);
+                materialUsageList.appendChild(wrapper);
+            }
+
+            addMaterialBtn.addEventListener('click', renderMaterialUsageInputs);
+
+            calculatePriceBtn.addEventListener('click', () => {
+                const workDuration = parseFloat(document.getElementById('work-duration').value);
+                const complexityFactor = parseFloat(document.getElementById('complexity-factor').value);
+                
+                let totalMaterialsCost = 0;
+                
+                materialUsageList.querySelectorAll('div').forEach(div => {
+                    const materialId = div.querySelector('select').value;
+                    const quantityUsed = parseFloat(div.querySelector('input').value);
+                    if (materialId && quantityUsed) {
+                        const material = currentMaterials.find(m => m.id === materialId);
+                        if (material) {
+                            totalMaterialsCost += material.cost_per_unit * quantityUsed;
+                        }
+                    }
+                });
+                
+                const workPrice = (workDuration * hourlyRate);
+                const finalPrice = totalMaterialsCost + workPrice * (1 + complexityFactor / 100);
+                finalPriceEl.textContent = `${finalPrice.toFixed(2)} ₴`;
+            });
+
+            salesForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!currentShiftId) {
+                    showModal('Сначала необходимо открыть смену!');
+                    return;
+                }
+                const appointmentId = document.getElementById('sales-appointment-id').value;
+                const finalPrice = parseFloat(finalPriceEl.textContent);
+                const job_category_id = document.getElementById('sales-job-category').value;
+                const payment_method = document.getElementById('sales-payment-method').value;
+
+                const materialsUsed = [];
+                materialUsageList.querySelectorAll('div').forEach(div => {
+                    const materialId = div.querySelector('select').value;
+                    const quantityUsed = parseFloat(div.querySelector('input').value);
+                    if (materialId && quantityUsed) {
+                        materialsUsed.push({ id: materialId, quantity: quantityUsed });
+                    }
+                });
+
+                try {
+                    // Update material quantities
+                    for (const mat of materialsUsed) {
+                        const { data: material } = await supabaseClient.from('materials').select('quantity').eq('id', mat.id).single();
+                        if (material) {
+                            const newQuantity = material.quantity - mat.quantity;
+                            await supabaseClient.from('materials').update({ quantity: newQuantity }).eq('id', mat.id);
+                        }
+                    }
+
+                    // Create sales record
+                    await supabaseClient.from('sales').insert([{
+                        appointment_id: appointmentId,
+                        total_price: finalPrice,
+                        materials_used: materialsUsed,
+                        job_category_id: job_category_id,
+                        payment_method: payment_method,
+                        shift_id: currentShiftId
+                    }]);
+
+                    // Update appointment status to "Завершено"
+                    await supabaseClient.from('appointments').update({ status: 'Завершено' }).eq('id', appointmentId);
+                    
+                    salesModal.classList.add('hidden');
+                    showModal('Продажа успешно завершена!');
+                    fetchAppointments();
+                    fetchMaterials();
+                    fetchDashboardData();
+                } catch (error) {
+                    console.error('Error completing sale:', error.message);
+                    showModal('Произошла ошибка при завершении продажи.');
+                }
+            });
+
+            // Initial fetches to populate the dashboard and settings
+            fetchSettings();
+            fetchDashboardData();
+            checkActiveShift();
+            
+        });
+    </script>
+</body>
+</html>
 
